@@ -1,80 +1,96 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DG.Tweening;
 using EnglishKids.Robots;
 using UnityEngine;
-using DG.Tweening;
 
 public class ConveyerController : Singleton<ConveyerController> {
-
     [SerializeField] private Detail _detailPrefab;
-    private List<Detail> _leftDetailsList = new List<Detail>();
-    private List<Detail> _rightDetailsList = new List<Detail>();
-    [SerializeField] private Transform _parentForUnenable;
+
+    //private List<Detail> _leftDetailsList = new List<Detail>();
+    //private List<Detail> _rightDetailsList = new List<Detail>();
     [SerializeField] private Transform _parentForEnable;
     [SerializeField] private Transform _movingTape;
     private RectTransform _rT;
-    private float currentY = 0; //bear temp
+    private float currentY; //bear temp
     private int detailsCount;
     public Camera mainCam;
+    private float _speed = 250f;
+    [SerializeField] private bool _flagForTapeMoving;
 
     public void Setup() {
         _rT = gameObject.GetComponent<RectTransform>();
-        var leftInfo = ScriptableObjectController.Inst.GetRobotShadowSettingByColor(MainLogic.leftColor);
-        FillDetailsLists(_leftDetailsList, leftInfo);
-        var rightInfo = ScriptableObjectController.Inst.GetRobotShadowSettingByColor(MainLogic.rightColor);
-        FillDetailsLists(_rightDetailsList, rightInfo);
-        detailsCount = _leftDetailsList.Count + _rightDetailsList.Count;
+        currentY = _rT.sizeDelta.y;
+        detailsCount = MainLogic.Inst.leftSpace.roboContour.partsList.Count + MainLogic.Inst.rightSpace.roboContour.partsList.Count;
         FillConveyer();
-        DOVirtual.DelayedCall(2f, MovingTape);
+        DOVirtual.DelayedCall(1f, () => _flagForTapeMoving = true);
     }
 
-    public void MovingTape() {
-        var step = Screen.height - 100;
-        _movingTape.DOMoveY(-step, 5f, false);
+    void Update() {
+        if (_flagForTapeMoving) {
+
+            _movingTape.localPosition += Vector3.down * _speed * Time.deltaTime;
+        }
+    }
+
+    public void MovingTape(int step) {
+        float delta = step * _rT.sizeDelta.y;
+        _movingTape.DOLocalMoveY(-(delta * 1.5f), 5f);
+    }
+
+    public void TapeMovingStatus(bool var) {
+        _flagForTapeMoving = var;
     }
 
     private void FillConveyer() {
-        
-        for (int i=0; i< detailsCount - 1; i++) {
-            var det = GetRandomDetail();
+
+        CreateArray();
+        for (int i = 0; i < detailsCount; i++) {
+            Detail det = GetRandomDetail();
             float angle = Random.Range(-180, 180);
             det.SetDetailAngle(angle);
             PlaceDetailOnConveyer(det);
-        } 
+        }
     }
 
     private void PlaceDetailOnConveyer(Detail det) {
         det.transform.SetParent(_parentForEnable);
         det.gameObject.SetActive(true);
-        var detSize = det.radius;
-        var delta = (_rT.sizeDelta.x - detSize * 2) / 2;
-        var localX = Random.Range(-delta, delta);
-        var localY = currentY + detSize;
-        currentY = localY + detSize;
+        float detSize = det.radius;
+        float delta = _rT.sizeDelta.x/2 - detSize;
+        float localX = Random.Range(-delta, delta);
+        currentY += detSize*2;
+        float localY = currentY;
         det.SetConveyerPos(new Vector3(localX, localY, 0));
-        //det.v2 = new Vector2(localX, localY);
+        det.SetParentConveyer(_parentForEnable);
     }
 
-    private void FillDetailsLists(List<Detail> currentList, RobotShadowSO settings) {
-        foreach (var part in settings.partsList) {
-            var det = Instantiate(_detailPrefab, _parentForUnenable);
-            det.SetSpriteToDetail(settings.color, part);
-            det.gameObject.SetActive(false);
-            currentList.Add(det);
+    public List<Detail> randomMassiv = new List<Detail>();
+    public List<int> indexArray = new List<int>();
+
+    private void CreateArray() {
+        int i = 0;
+        foreach (var e in MainLogic.Inst.leftSpace.roboContour.partsList)
+        {
+            randomMassiv.Add(e);
+            indexArray.Add(i);
+            i++;
         }
-    }
 
+        foreach (var e in MainLogic.Inst.rightSpace.roboContour.partsList)
+        {
+            randomMassiv.Add(e);
+            indexArray.Add(i);
+            i++;
+        }
+
+
+    }
     private Detail GetRandomDetail() {
-        float r = Random.Range(0f, 1.1f);
-        var currentList = r > 0.5f ? _leftDetailsList : _rightDetailsList;
-        if (currentList.Count == 0) {
-            currentList = _leftDetailsList.Count == 0 ? _rightDetailsList : _leftDetailsList;
-        }
-        int i = Random.Range(0, currentList.Count);
-        var result = currentList[i];
-        currentList.RemoveAt(i);
-        return result;
-    }
 
+        int r = Random.Range(0, indexArray.Count);
+        int iR = indexArray[r];
+        indexArray.RemoveAt(r);
+   
+        return randomMassiv[iR];
+    }
 }

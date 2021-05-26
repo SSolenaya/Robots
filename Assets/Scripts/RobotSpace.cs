@@ -19,7 +19,7 @@ public class RobotSpace : MonoBehaviour {
 
     private Side _side;
     [SerializeField] private Image _background;
-    [SerializeField] private RobotShadow _roboContour;
+    [SerializeField] public RobotShadow roboContour;
     [SerializeField] private VoiceButton _voiceButton;
 
     public void Setup(Side side, RoboColors color) {
@@ -27,15 +27,17 @@ public class RobotSpace : MonoBehaviour {
         var bgPath = color.ToString() + "/" + "background_" + _side.ToString();
         SetSpriteTo(_background, bgPath);
         SetRobotShadowByColor(color);
+        roboContour.Setup();
         _voiceButton.Setup(color);
     }
 
     private void SetRobotShadowByColor(RoboColors color) {
         var path = "roboContour_" + color.ToString();
         var cont = Resources.Load<RobotShadow>("Prefabs/" + path);
-        _roboContour = Instantiate(cont, this.transform);
-        _roboContour.transform.localPosition = Vector3.zero;
-        _roboContour.transform.localScale = Vector3.one;
+        roboContour = Instantiate(cont);
+        roboContour.transform.SetParent(this.transform);
+        roboContour.GetComponent<RectTransform>().anchoredPosition= Vector3.zero;
+        roboContour.transform.localScale = Vector3.one;
     }
 
     private void ShowVoiceButton(bool var) {

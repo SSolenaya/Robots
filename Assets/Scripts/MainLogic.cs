@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
+using EnglishKids.Robots;
 using UnityEngine;
 
-public class MainLogic : MonoBehaviour {
+public class MainLogic : Singleton<MainLogic> {
 
-    [SerializeField] private RobotSpace leftSpace;
-    [SerializeField] private RobotSpace rightSpace;
+    public RobotSpace leftSpace;
+    public RobotSpace rightSpace;
 
     public const RoboColors leftColor = RoboColors.green;       //  may be random
     public const RoboColors rightColor = RoboColors.yellow;
@@ -14,6 +16,6 @@ public class MainLogic : MonoBehaviour {
         leftSpace.Setup(Side.left, leftColor);
         rightSpace.Setup(Side.right, rightColor);
 
-        ConveyerController.Inst.Setup();
+        DOVirtual.DelayedCall(1.5f, () =>ConveyerController.Inst.Setup());
     }
 }

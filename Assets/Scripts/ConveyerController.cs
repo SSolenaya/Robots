@@ -22,22 +22,22 @@ public class ConveyerController : Singleton<ConveyerController> {
         currentY = _rT.sizeDelta.y;
         detailsCount = MainLogic.Inst.leftSpace.roboContour.partsList.Count + MainLogic.Inst.rightSpace.roboContour.partsList.Count;
         FillConveyer();
-        DOVirtual.DelayedCall(1f, () => _flagForTapeMoving = true);
+        DOVirtual.DelayedCall(1f, () => TapeMovingStatus(true));
     }
 
     void Update() {
         if (_flagForTapeMoving) {
 
-            _movingTape.localPosition += Vector3.down * _speed * Time.deltaTime;
+            MovingTape();
         }
     }
 
-    public void MovingTape(int step) {
-        float delta = step * _rT.sizeDelta.y;
-        _movingTape.DOLocalMoveY(-(delta * 1.5f), 5f);
+    public void MovingTape() {
+        _movingTape.localPosition += Vector3.down * _speed * Time.deltaTime;
     }
 
     public void TapeMovingStatus(bool var) {
+        AudioManager.Inst.PlayConveyerSound();
         _flagForTapeMoving = var;
     }
 

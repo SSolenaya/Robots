@@ -5,24 +5,46 @@ using UnityEngine;
 namespace EnglishKids.Robots {
 
     public class AudioManager : Singleton<AudioManager> {
-        private List<AudioSource> _effects;
-        private List<AudioSource> _voice;
-        private List<AudioSource> _music;
+        [SerializeField] private AudioSource _effects;
+        [SerializeField] private AudioSource _voice;
+        [SerializeField] private AudioSource _music;
+
+        [SerializeField] private AudioClip _conveyerSound;     //  Конвейер начинает и заканчивает движение
+        [SerializeField] private AudioClip _pickDetail;        //   Берем деталь с ленты
+        [SerializeField] private AudioClip _wrongAnswer;        //   Пытаемся поставить в неправильный слот
+        [SerializeField] private AudioClip _correctAnswer;      //  правильный слот
+
 
         void Start() {
             OptionsController.Inst.effectSliderAction += SetEffectsVolumeTo;
             OptionsController.Inst.voiceSliderAction += SetVoiceVolumeTo;
             OptionsController.Inst.musicSliderAction += SetMusicVolumeTo;
-    }
+        }
+
+        public void PlayConveyerSound() {
+            _effects.PlayOneShot(_conveyerSound);
+        }
+
+        public void PlayPickDetailSound()
+        {
+            _effects.PlayOneShot(_pickDetail);
+        }
+
+        public void PlayWrongAnswerSound()
+        {
+            _effects.PlayOneShot(_wrongAnswer);
+        }
+
+        public void PlayCorrectAnswerSound()
+        {
+            _effects.PlayOneShot(_correctAnswer);
+        }
 
         private void SetEffectsVolumeTo(float newVolume) {
             if (newVolume < 0 || newVolume > 1) {
                 Debug.LogError("Uncorrect volume");
             }
-
-            foreach (var eff in _effects) {
-                eff.volume = newVolume;
-            }
+            _effects.volume = newVolume;
         }
 
         private void SetVoiceVolumeTo(float newVolume)
@@ -31,11 +53,7 @@ namespace EnglishKids.Robots {
             {
                 Debug.LogError("Uncorrect volume");
             }
-
-            foreach (var voi in _voice)
-            {
-                voi.volume = newVolume;
-            }
+            _voice.volume = newVolume;
         }
 
         private void SetMusicVolumeTo(float newVolume)
@@ -44,11 +62,7 @@ namespace EnglishKids.Robots {
             {
                 Debug.LogError("Uncorrect volume");
             }
-
-            foreach (var mus in _effects)
-            {
-                mus.volume = newVolume;
-            }
+            _music.volume = newVolume;
         }
     }
 }

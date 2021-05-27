@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using DG.Tweening;
+using EnglishKids.Robots;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -71,12 +72,14 @@ public class Detail : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHa
 
  public void OnEndDrag(PointerEventData eventData) {
      if (!CheckForMatch()) {
+         AudioManager.Inst.PlayWrongAnswerSound();
          transform.SetParent(_parentConveyer);
          transform.DOLocalMove(conveyerPos, 1f);
          transform.DORotate(new Vector3(0, 0, _conveyerAngle), 1.5f, RotateMode.Fast);
          _clickable = true;
      } else {
          transform.DOLocalMove(robotPos, 0.2f);
+         AudioManager.Inst.PlayCorrectAnswerSound();
      }
  }
 

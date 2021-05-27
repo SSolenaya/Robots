@@ -15,6 +15,6 @@ public class TapeMovingDetector : MonoBehaviour {
     void OnTriggerExit2D(Collider2D collider2D)
     {
         Debug.Log("No colliders");
-        moveEvent.Invoke();
+       // moveEvent.Invoke();
     }
 }

@@ -1,68 +1,71 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using EasyButtons;
 using UnityEngine;
 
 namespace EnglishKids.Robots {
-
     public class AudioManager : Singleton<AudioManager> {
+        [SerializeField] private AudioSource _effectsConveyor;
         [SerializeField] private AudioSource _effects;
         [SerializeField] private AudioSource _voice;
         [SerializeField] private AudioSource _music;
 
-        [SerializeField] private AudioClip _conveyerSound;     //  Конвейер начинает и заканчивает движение
-        [SerializeField] private AudioClip _pickDetail;        //   Берем деталь с ленты
-        [SerializeField] private AudioClip _wrongAnswer;        //   Пытаемся поставить в неправильный слот
-        [SerializeField] private AudioClip _correctAnswer;      //  правильный слот
+        [SerializeField] private AudioClip _conveyerSound; //  Конвейер начинает и заканчивает движение
+        [SerializeField] private AudioClip _pickDetail; //   Берем деталь с ленты
+        [SerializeField] private AudioClip _wrongAnswer; //   Пытаемся поставить в неправильный слот
+        [SerializeField] private AudioClip _correctAnswer; //  правильный слот
+
+        [SerializeField] private AudioClip _voiceGreen; //  звук "зелёный"
+        [SerializeField] private AudioClip _voiceYellow; //  звук "желтый"
 
 
-        void Start() {
-            OptionsController.Inst.effectSliderAction += SetEffectsVolumeTo;
-            OptionsController.Inst.voiceSliderAction += SetVoiceVolumeTo;
-            OptionsController.Inst.musicSliderAction += SetMusicVolumeTo;
+        [ReadOnly] public List<AudioClip> listEffectsToPlay;//лист для контроля проигруемого звука
+
+        public void PlayConveyorSound(bool var) {
+            if (!var) {
+                _effectsConveyor.Stop();
+                return;
+            }
+
+            if (_effectsConveyor.isPlaying) {
+                return;
+            }
+
+            _effectsConveyor.clip = _conveyerSound;
+            _effectsConveyor.loop = true;
+            _effectsConveyor.Play();
         }
 
-        public void PlayConveyerSound() {
-            _effects.PlayOneShot(_conveyerSound);
+        [Button]
+        public void PlayPickDetailSound() {
+            _effects.PlayOneShot(_pickDetail, 1);
         }
 
-        public void PlayPickDetailSound()
-        {
-            _effects.PlayOneShot(_pickDetail);
-        }
-
-        public void PlayWrongAnswerSound()
-        {
+        public void PlayWrongAnswerSound() {
             _effects.PlayOneShot(_wrongAnswer);
         }
 
-        public void PlayCorrectAnswerSound()
-        {
+        public void PlayCorrectAnswerSound() {
             _effects.PlayOneShot(_correctAnswer);
         }
 
-        private void SetEffectsVolumeTo(float newVolume) {
-            if (newVolume < 0 || newVolume > 1) {
-                Debug.LogError("Uncorrect volume");
+        public void PlayVoiceByColor(RoboColors roboColors) {
+            listEffectsToPlay.Clear();
+            switch (roboColors) {
+                case RoboColors.green:
+                    listEffectsToPlay.Add(_voiceGreen);
+                    break;
+                case RoboColors.yellow:
+                    listEffectsToPlay.Add(_voiceYellow);
+                    break;
             }
-            _effects.volume = newVolume;
         }
-
-        private void SetVoiceVolumeTo(float newVolume)
-        {
-            if (newVolume < 0 || newVolume > 1)
-            {
-                Debug.LogError("Uncorrect volume");
+        
+        public void Update() {
+            if (!_voice.isPlaying && listEffectsToPlay.Count > 0) {
+                AudioClip a = listEffectsToPlay[0];
+                listEffectsToPlay.RemoveAt(0);
+                _voice.PlayOneShot(a);
             }
-            _voice.volume = newVolume;
-        }
-
-        private void SetMusicVolumeTo(float newVolume)
-        {
-            if (newVolume < 0 || newVolume > 1)
-            {
-                Debug.LogError("Uncorrect volume");
-            }
-            _music.volume = newVolume;
         }
     }
 }

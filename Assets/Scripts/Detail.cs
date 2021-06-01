@@ -1,100 +1,118 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Numerics;
-using DG.Tweening;
-using EnglishKids.Robots;
+﻿using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
-using Vector2 = UnityEngine.Vector2;
-using Vector3 = UnityEngine.Vector3;
 
-public class Detail : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHandler
-{
-   public RectTransform rT;
-   private float deltaCollider = 0.15f;     //  коэф для увеличения области клика на детали
-   private float deltaMatch = 0.1f;          //  допуск несоответствия позиций детали и контура - 10%
-    private bool flagForMove = false;
-    private bool _clickable;
-    private Vector3 conveyerPos;    //  позиция на конвеере
-    private Vector3 robotPos;       //  позиция при старте - на роботе
-    private float _conveyerAngle;
-    public float radius;
-    private Transform _parentRobot;
-    private Transform _parentConveyer;
+namespace EnglishKids.Robots {
+    public class Detail : MonoBehaviour, IDragHandler, IEndDragHandler, IBeginDragHandler {
+        [ReadOnly] public Robot robot;
+        [ReadOnly] public int index;
+        [ReadOnly] public RectTransform rectTransform;
+        [ReadOnly] public bool detailOnRobot;
+        [ReadOnly] public bool detailOnDrag;
+        [ReadOnly] public bool detailOnConveyor;
+        [ReadOnly] public bool canDrag;
+        [ReadOnly] public Vector2 conveyerPos; //  позиция на конвеере
+        private Vector2 _robotPos; //  позиция при старте - на роботе
+        private float _conveyerAngle;
+        [ReadOnly] public float radius;
+        private float _w;
+        private float _h;
 
-   public void Setup(Transform tr) {
-        rT = GetComponent<RectTransform>();
-        _clickable = GetComponent<CanvasGroup>().blocksRaycasts;
-        var boxCol = GetComponent<BoxCollider2D>();
-        boxCol.size = new Vector2((1 + deltaCollider) * rT.sizeDelta.x, (1 + deltaCollider) * rT.sizeDelta.y);
-        flagForMove = true;
-        radius = (Mathf.Sqrt(rT.sizeDelta.x * rT.sizeDelta.x + rT.sizeDelta.y * rT.sizeDelta.y)) / 2 + deltaCollider;
+        public void Setup() {
+            rectTransform = GetComponent<RectTransform>();
+            BoxCollider2D boxCol = GetComponent<BoxCollider2D>();
+            boxCol.size = new Vector2((1 + SOController.Inst.rs.deltaCollider) * rectTransform.sizeDelta.x, (1 + SOController.Inst.rs.deltaCollider) * rectTransform.sizeDelta.y);
+            _h = rectTransform.sizeDelta.y * 0.5f;
+            _w = rectTransform.sizeDelta.x * 0.5f;
+            radius = Mathf.Sqrt(_h * _h + _w * _w) * SOController.Inst.rs.scaleRobots;
+            SetRobotPosition();
+            canDrag = true;
+        }
 
-        SetRobotPosition();
-        SetParentRobot(tr);
-   }
+        public void SetRobotPosition() {
+            _robotPos = rectTransform.anchoredPosition;
+        }
 
-    public void SetRobotPosition() {
-        robotPos = rT.anchoredPosition;
+        public void SetConveyorPosition(Vector3 pos) {
+            rectTransform.localPosition = pos;
+            conveyerPos = pos;
+        }
+
+        public void SetParentConveyor(Transform tr) {
+            rectTransform.SetParent(tr);
+        }
+
+        public void SetDetailAngle() {
+            float angle = Random.Range(0f, 360f);
+            _conveyerAngle = angle;
+            transform.Rotate(Vector3.forward, _conveyerAngle);
+        }
+
+        public void OnBeginDrag(PointerEventData eventData) {
+            if (detailOnRobot || !canDrag) {
+                return;
+            }
+
+            detailOnDrag = true;
+            AudioManager.Inst.PlayPickDetailSound();
+            ConveyorController.Inst.canMoveConveyor = false;
+            transform.DORotate(Vector3.zero, 0.3f);
+            transform.SetParent(ConveyorController.Inst.parentForDetails);
+        }
+
+        public void OnDrag(PointerEventData eventData) {
+            if (detailOnRobot || !canDrag) {
+                return;
+            }
+
+            if (eventData.pointerEnter != null && eventData.pointerEnter.transform as RectTransform != null) {
+                RectTransform draggingPlane = eventData.pointerEnter.transform as RectTransform;
+                Vector3 touchPos;
+                if (RectTransformUtility.ScreenPointToWorldPointInRectangle(draggingPlane, eventData.position, eventData.pressEventCamera, out touchPos)) {
+                    rectTransform.position = touchPos;
+                }
+            }
+        }
+
+        public void OnEndDrag(PointerEventData eventData) {
+            if (detailOnRobot) {
+                return;
+            }
+
+            canDrag = false;
+
+            float time = 0.5f;
+            if (CheckNeedPositionOnRobot()) {
+                detailOnRobot = true;
+                robot.CheckToWin();
+                transform.DOLocalMove(_robotPos, time).OnComplete(() => {
+                    detailOnDrag = false;
+                    ConveyorController.Inst.canMoveConveyor = true;
+                    canDrag = true;
+                });
+                AudioManager.Inst.PlayCorrectAnswerSound();
+
+                Transform effect = Instantiate(HelpController.Inst.starEffectPrefab);
+                effect.position = transform.position;
+                DOVirtual.DelayedCall(3, () => {
+                    Destroy(effect.gameObject);
+                });
+
+            } else {
+                AudioManager.Inst.PlayWrongAnswerSound();
+                transform.SetParent(ConveyorController.Inst.parentForMoveDetails);
+                transform.DOLocalMove(conveyerPos, time).OnComplete(() => {
+                    detailOnDrag = false;
+                    ConveyorController.Inst.canMoveConveyor = true;
+                    canDrag = true;
+                });
+                transform.DORotate(new Vector3(0, 0, _conveyerAngle), time);
+            }
+        }
+
+        private bool CheckNeedPositionOnRobot() {
+            float delta = (_robotPos - rectTransform.anchoredPosition).magnitude;
+            return delta < SOController.Inst.rs.minDetailDis;
+        }
     }
-
-    public void SetParentRobot(Transform pRTransform) {
-        _parentRobot = pRTransform;
-    }
-
-    public void SetParentConveyer(Transform convTransform)
-    {
-        _parentConveyer = convTransform;
-    }
-  public void SetDetailAngle(float angle) {
-         _conveyerAngle = angle;
-         transform.Rotate(Vector3.forward, _conveyerAngle);
-    }
-
-   public void SetConveyerPos(Vector3 pos) {
-        rT.anchoredPosition = pos;
-        conveyerPos = rT.localPosition;
-   }
-
-  
- public void OnDrag(PointerEventData eventData) {
-     if (flagForMove && eventData.pointerEnter != null && eventData.pointerEnter.transform as RectTransform != null) {
-            //conveyerPos = rT.anchoredPosition;
-            
-            var draggingPlane = eventData.pointerEnter.transform as RectTransform;
-         Vector3 touchPos;
-         if (RectTransformUtility.ScreenPointToWorldPointInRectangle(draggingPlane, eventData.position, eventData.pressEventCamera, out touchPos))
-             rT.position = touchPos;
-
-     }
-   }
-
- public void OnEndDrag(PointerEventData eventData) {
-     if (!CheckForMatch()) {
-         AudioManager.Inst.PlayWrongAnswerSound();
-         transform.SetParent(_parentConveyer);
-         transform.DOLocalMove(conveyerPos, 1f);
-         transform.DORotate(new Vector3(0, 0, _conveyerAngle), 1.5f, RotateMode.Fast);
-         _clickable = true;
-     } else {
-         transform.DOLocalMove(robotPos, 0.2f);
-         AudioManager.Inst.PlayCorrectAnswerSound();
-     }
- }
-
- private bool CheckForMatch() {
-     var delta = robotPos - transform.localPosition;
-     return (delta.y < robotPos.y * deltaMatch) && (delta.x < robotPos.x * deltaMatch);
- }
-
- void OnDisable() {
-     flagForMove = false;
-    }
-
- public void OnBeginDrag(PointerEventData eventData) {
-     _clickable = false;
-     transform.DORotate(Vector3.zero, 1f, RotateMode.Fast);
-     transform.SetParent(_parentRobot);
- }
 }

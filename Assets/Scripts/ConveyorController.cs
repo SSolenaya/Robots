@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace EnglishKids.Robots {
     public class ConveyorController : Singleton<ConveyorController> {
-        public TapeMovingDetector tapeMovingDetector; //Индикатор детали в низу конвеера
+        public TapeMovingDetector tapeMovingDetector; //Индикатор детали внизу конвеера
         public RectTransform upPoint; // точка для позиционирования на верхней части экрана
         public RectTransform parentForMoveDetails; //родитель на конвеере
-        public RectTransform parentForDetails; //родитель вне конеерап
+        public RectTransform parentForDetails; //родитель вне конеера
         [SerializeField] private Transform _movingTape;
         private float _currentYforDetail;
         [ReadOnly] public bool canMoveConveyor;

@@ -18,7 +18,7 @@ namespace EnglishKids.Robots {
         [SerializeField] private AudioClip _voiceYellow; //  звук "желтый"
 
 
-        [ReadOnly] public List<AudioClip> listEffectsToPlay;//лист для контроля проигруемого звука
+        [ReadOnly] public List<AudioClip> listEffectsToPlay;//лист для контроля очереди звука
 
         public void PlayConveyorSound(bool var) {
             if (!var) {
